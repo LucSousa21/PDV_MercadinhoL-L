@@ -1,5 +1,5 @@
 
-name: Gerar versões do PDV
+name: Compilar e publicar PDV
 
 on:
   push:
@@ -10,6 +10,11 @@ permissions:
   contents: write
 
 jobs:
+
+  # ==========================================
+  # WINDOWS
+  # ==========================================
+
   build-windows:
     runs-on: windows-latest
 
@@ -32,18 +37,22 @@ jobs:
         run: |
           pyinstaller --noconfirm --clean --windowed --onedir --name PDV-Mercadinho main.py
 
-      - name: Compactar executável
+      - name: Compactar
         run: |
           Compress-Archive -Path dist/PDV-Mercadinho -DestinationPath PDV-Mercadinho-Windows.zip
 
-      - name: Armazenar executável
+      - name: Salvar executável
         uses: actions/upload-artifact@v4
         with:
-          name: PDV-Windows
+          name: windows-release
           path: PDV-Mercadinho-Windows.zip
 
+  # ==========================================
+  # LINUX APPIMAGE
+  # ==========================================
+
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Baixar código
@@ -54,10 +63,10 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Instalar dependências do Linux
+      - name: Instalar dependências
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-tk
+          sudo apt-get install -y python3-tk wget
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
@@ -66,8 +75,73 @@ jobs:
         run: |
           pyinstaller --noconfirm --clean --windowed --onedir --name PDV-Mercadinho main.py
 
-      - name: Armazenar executável
+      - name: Preparar AppImage
+        run: |
+          mkdir -p AppDir/usr/bin
+
+          cp -r dist/PDV-Mercadinho AppDir/usr/bin/
+
+          cat > AppDir/AppRun <<'EOF'
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "$0")")"
+          cd "$HERE/usr/bin/PDV-Mercadinho"
+          exec ./PDV-Mercadinho "$@"
+          EOF
+
+          chmod +x AppDir/AppRun
+
+          cat > AppDir/pdv-mercadinho.desktop <<'EOF'
+          [Desktop Entry]
+          Name=PDV Mercadinho
+          Exec=AppRun
+          Type=Application
+          Categories=Office;
+          Terminal=false
+          EOF
+
+      - name: Baixar ferramenta AppImage
+        run: |
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+
+      - name: Gerar AppImage
+        run: |
+          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool-x86_64.AppImage AppDir dist/PDV-Mercadinho-Linux.AppImage
+
+      - name: Salvar AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: PDV-Linux
-          path: dist/PDV-Mercadinho/
+          name: linux-release
+          path: dist/PDV-Mercadinho-Linux.AppImage
+
+  # ==========================================
+  # PUBLICAR RELEASE
+  # ==========================================
+
+  publish:
+    runs-on: ubuntu-latest
+    needs:
+      - build-windows
+      - build-linux
+
+    steps:
+      - name: Baixar arquivos Windows
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-release
+          path: release-assets
+
+      - name: Baixar arquivos Linux
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-release
+          path: release-assets
+
+      - name: Publicar Release no GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/PDV-Mercadinho-Windows.zip
+            release-assets/PDV-Mercadinho-Linux.AppImage
+          generate_release_notes: true
+          make_latest: true
