@@ -1,0 +1,1 @@
+from src.service.cadastro_produto import cadastrar_produto
