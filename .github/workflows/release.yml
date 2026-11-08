@@ -81,6 +81,9 @@ jobs:
 
           cp -r dist/PDV-Mercadinho AppDir/usr/bin/
 
+          cp assets/pdv-mercadinho.png AppDir/pdv-mercadinho.png
+          cp assets/pdv-mercadinho.png AppDir/.DirIcon
+
           cat > AppDir/AppRun <<'EOF'
           #!/bin/sh
           HERE="$(dirname "$(readlink -f "$0")")"
@@ -94,6 +97,7 @@ jobs:
           [Desktop Entry]
           Name=PDV Mercadinho
           Exec=AppRun
+          Icon=pdv-mercadinho
           Type=Application
           Categories=Office;
           Terminal=false
