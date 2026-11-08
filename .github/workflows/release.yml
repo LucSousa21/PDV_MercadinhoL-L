@@ -83,6 +83,7 @@ jobs:
 
           cp assets/pdv-mercadinho.png AppDir/pdv-mercadinho.png
           cp assets/pdv-mercadinho.png AppDir/.DirIcon
+          cp version.json AppDir/usr/bin/PDV-Mercadinho/
 
           cat > AppDir/AppRun <<'EOF'
           #!/bin/sh

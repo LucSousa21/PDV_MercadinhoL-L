@@ -8,6 +8,8 @@ from src.service.consultar_produto import exibir_produto
 from src.views.componentes import LinhaProduto
 from src.views.pagamento import JanelaPagamento
 from src.views.venda import VendaView
+from src.core.updater_service import check_atualizacao
+from src.views.janela_atualizacao import perguntar_atualizacao
 
 
 class PDV(ctk.CTkFrame):
@@ -217,6 +219,7 @@ class PDV(ctk.CTkFrame):
             pady=10,
         )
 
+    
     # ==========================================================
     # TECLADO
     # ==========================================================
