@@ -10,7 +10,6 @@ import hashlib
 from pathlib import Path
 from packaging import version
 
-
 GITHUB_API = (
     "https://api.github.com/repos/"
     "LucSousa21/PDV_MercadinhoL-L/releases/latest"
@@ -27,16 +26,23 @@ def caminho_version():
     Localiza o version.json no desenvolvimento e na produção.
     """
 
+    # Linux AppImage
+    appdir = os.environ.get("APPDIR")
+
+    if appdir:
+        return (
+            Path(appdir)
+            / "usr"
+            / "bin"
+            / "PDV-Mercadinho"
+            / "version.json"
+        )
+
+    # Windows e outros executáveis PyInstaller
     if getattr(sys, "frozen", False):
-
-        # Linux AppImage
-        if os.environ.get("APPIMAGE"):
-            return Path(os.environ["APPIMAGE"]).resolve().parent / "version.json"
-
-        # Windows PyInstaller
         return Path(sys.executable).resolve().parent / "version.json"
 
-    # Desenvolvimento
+    # Ambiente de desenvolvimento
     return Path(__file__).resolve().parents[2] / "version.json"
 
 
