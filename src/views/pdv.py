@@ -10,6 +10,7 @@ from src.views.pagamento import JanelaPagamento
 from src.views.venda import VendaView
 from src.core.updater_service import check_atualizacao
 from src.views.janela_atualizacao import perguntar_atualizacao
+from src.core.impressora_service import ImpressaoService
 
 
 class PDV(ctk.CTkFrame):
@@ -18,10 +19,13 @@ class PDV(ctk.CTkFrame):
     """
 
     def __init__(self, master):
+            
         super().__init__(master)
 
         self.venda = VendaView()
         self.quantidade_pendente = 1
+
+        self.impressao_service = ImpressaoService()
 
         self._criar_interface()
         self._configurar_teclas()
@@ -547,18 +551,18 @@ class PDV(ctk.CTkFrame):
     # PAGAMENTO CONFIRMADO
     # ==========================================================
 
+    
     def _pagamento_confirmado(
-        self,
-        pagamentos,
-        valor_recebido,
-        troco,
+            self,
+            pagamentos,
+            valor_recebido,
+            troco,
     ):
+            
         """
-        Registra a venda somente depois
-        que o pagamento foi confirmado.
+        Registra a venda e prepara a impressão do cupom.
         """
 
-        # Guarda o total antes de limpar a venda.
         total_venda = self.venda.total
 
         itens_venda = []
@@ -586,8 +590,36 @@ class PDV(ctk.CTkFrame):
 
             return
 
+    # ======================================================
+    # PREPARAR CUPOM
+    # ======================================================
+
+        resultado_impressao = self.impressao_service.imprimir_venda(
+            venda=venda_registrada,
+            pagamentos=pagamentos,
+            valor_recebido=valor_recebido,
+            troco=troco,
+        )
+
         # ======================================================
-        # MOSTRA O RESUMO DO PAGAMENTO
+        # VERIFICAR RESULTADO
+        # ======================================================
+
+        if resultado_impressao["sucesso"]:
+
+            print("\n========== CUPOM GERADO ==========\n")
+            print(resultado_impressao["conteudo"])
+            print("\n==================================\n")
+
+        else:
+
+            print(
+                "Não foi possível preparar o cupom:",
+                resultado_impressao["mensagem"]
+            )
+
+        # ======================================================
+        # MOSTRAR RESUMO DO PAGAMENTO
         # ======================================================
 
         self._mostrar_resumo_pagamento(
@@ -598,7 +630,7 @@ class PDV(ctk.CTkFrame):
         )
 
         # ======================================================
-        # ZERA A VENDA ANTIGA
+        # LIMPAR VENDA
         # ======================================================
 
         self.limpar_venda()
@@ -610,9 +642,6 @@ class PDV(ctk.CTkFrame):
             ).replace(".", ",")
         )
 
-    # ==========================================================
-    # RESUMO DETALHADO DO PAGAMENTO
-    # ==========================================================
 
     def _mostrar_resumo_pagamento(
         self,
