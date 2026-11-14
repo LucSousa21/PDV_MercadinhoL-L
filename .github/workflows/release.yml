@@ -145,25 +145,9 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      
       - name: Compilar Linux
         run: |
           pyinstaller --noconfirm --clean PDV-Mercadinho.spec
-
-      - name: Diagnosticar arquivos Linux
-        run: |
-          echo "========== DIST =========="
-          ls -lah dist/
-
-          echo "========== CONTEUDO PDV =========="
-          find dist/PDV-Mercadinho -maxdepth 3 -type f
-
-          echo "========== DIRETORIOS =========="
-          find dist/PDV-Mercadinho -maxdepth 3 -type d
-
-      - name: Copiar version.json Linux
-        run: |
-          cp version.json dist/PDV-Mercadinho/version.json
 
       - name: Validar compilação Linux
         run: |
@@ -172,6 +156,58 @@ jobs:
           test -d dist/PDV-Mercadinho/_internal
 
           echo "Compilação Linux validada."
+
+      - name: Preparar AppImage
+        run: |
+          mkdir -p AppDir/usr/bin
+
+          cp -r dist/PDV-Mercadinho AppDir/usr/bin/
+
+          cp assets/pdv-mercadinho.png AppDir/pdv-mercadinho.png
+          cp assets/pdv-mercadinho.png AppDir/.DirIcon
+
+          cat > AppDir/AppRun <<'EOF'
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "$0")")"
+          cd "$HERE/usr/bin/PDV-Mercadinho"
+          exec ./PDV-Mercadinho "$@"
+          EOF
+
+          chmod +x AppDir/AppRun
+
+          cat > AppDir/pdv-mercadinho.desktop <<'EOF'
+          [Desktop Entry]
+          Name=PDV Mercadinho
+          Exec=AppRun
+          Icon=pdv-mercadinho
+          Type=Application
+          Categories=Office;
+          Terminal=false
+          EOF
+
+      - name: Baixar ferramenta AppImage
+        run: |
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+
+      - name: Gerar AppImage
+        run: |
+          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 \
+          ./appimagetool-x86_64.AppImage \
+          AppDir dist/PDV-Mercadinho-Linux.AppImage
+
+      - name: Validar AppImage
+        run: |
+          test -s dist/PDV-Mercadinho-Linux.AppImage
+
+          echo "AppImage gerado com sucesso."
+
+      - name: Salvar pacote Linux
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: dist/PDV-Mercadinho-Linux.AppImage
+          if-no-files-found: error
 
 
   # ==========================================
