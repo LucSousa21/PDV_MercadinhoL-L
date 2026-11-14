@@ -4,14 +4,22 @@
 from PyInstaller.utils.hooks import collect_all
 from pathlib import Path
 
-datas = [
-    ("version.json", "."),
-]
+# ==========================================
+# ARQUIVOS DO PROJETO
+# ==========================================
 
+datas = []
 binaries = []
 hiddenimports = []
 
-# CustomTkinter
+# Versionamento
+if Path("version.json").exists():
+    datas.append(("version.json", "."))
+
+# ==========================================
+# CUSTOMTKINTER
+# ==========================================
+
 ctk_datas, ctk_binaries, ctk_hidden = collect_all(
     "customtkinter"
 )
@@ -20,7 +28,10 @@ datas += ctk_datas
 binaries += ctk_binaries
 hiddenimports += ctk_hidden
 
-# SQLAlchemy
+# ==========================================
+# SQLALCHEMY
+# ==========================================
+
 sql_datas, sql_binaries, sql_hidden = collect_all(
     "sqlalchemy"
 )
@@ -29,9 +40,16 @@ datas += sql_datas
 binaries += sql_binaries
 hiddenimports += sql_hidden
 
-# Assets
+# ==========================================
+# ASSETS
+# ==========================================
+
 if Path("assets").exists():
     datas.append(("assets", "assets"))
+
+# ==========================================
+# ANALYSIS
+# ==========================================
 
 a = Analysis(
     ["main.py"],
@@ -47,7 +65,15 @@ a = Analysis(
     optimize=0,
 )
 
+# ==========================================
+# PYZ
+# ==========================================
+
 pyz = PYZ(a.pure)
+
+# ==========================================
+# EXECUTAVEL
+# ==========================================
 
 exe = EXE(
     pyz,
@@ -61,6 +87,10 @@ exe = EXE(
     upx=False,
     console=False,
 )
+
+# ==========================================
+# DISTRIBUICAO ONEDIR
+# ==========================================
 
 coll = COLLECT(
     exe,
