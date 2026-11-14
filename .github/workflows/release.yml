@@ -143,7 +143,14 @@ jobs:
       - name: Compilar Linux
         run: |
           pyinstaller --noconfirm --clean PDV-Mercadinho.spec
+      
+      - name: Inspecionar arquivos Linux
+        run: |
+          echo "===== ARQUIVOS GERADOS ====="
+          find dist -maxdepth 4 -print
 
+          echo "===== PERMISSÕES DO EXECUTÁVEL ====="
+          ls -lah dist/PDV-Mercadinho/ || true
       - name: Validar compilação Linux
         run: |
           test -f dist/PDV-Mercadinho/PDV-Mercadinho
