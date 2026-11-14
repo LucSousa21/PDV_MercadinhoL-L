@@ -56,34 +56,29 @@ jobs:
         run: |
           Copy-Item version.json dist/PDV-Mercadinho/version.json -Force
 
-      - name: Validar compilação Windows
-        shell: pwsh
+      - name: Validar compilação Linux
         run: |
-          $pasta = "dist/PDV-Mercadinho"
+          echo "================================"
+          echo "ESTRUTURA GERADA PELO PYINSTALLER"
+          echo "================================"
 
-          $exe = "$pasta/PDV-Mercadinho.exe"
-          $versao = "$pasta/version.json"
-          $interno = "$pasta/_internal"
+          if [ -d dist ]; then
+              find dist -maxdepth 4 -type f -print
+              find dist -maxdepth 4 -type d -print
+          else
+              echo "ERRO: Pasta dist não foi criada!"
+              exit 1
+          fi
 
-          if (!(Test-Path $exe)) {
-              throw "ERRO: Executável Windows não encontrado!"
-          }
+          echo "================================"
+          echo "VALIDANDO EXECUTÁVEL"
+          echo "================================"
 
-          if (!(Test-Path $versao)) {
-              throw "ERRO: version.json não encontrado!"
-          }
+          test -f dist/PDV-Mercadinho/PDV-Mercadinho
+          test -f dist/PDV-Mercadinho/version.json
+          test -d dist/PDV-Mercadinho/_internal
 
-          if (!(Test-Path $interno)) {
-              throw "ERRO: Pasta _internal não encontrada!"
-          }
-
-          $dados = Get-Content $versao -Raw | ConvertFrom-Json
-
-          Write-Host "Executável encontrado."
-          Write-Host "Versão: $($dados.version)"
-
-          Write-Host "Conteúdo da distribuição:"
-          Get-ChildItem $pasta
+          echo "Compilação Linux validada."
 
       - name: Compactar Windows
         run: |
