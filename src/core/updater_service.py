@@ -1,4 +1,3 @@
-
 import requests as rep
 import os
 import sys
@@ -9,6 +8,7 @@ import hashlib
 
 from pathlib import Path
 from packaging import version
+
 
 GITHUB_API = (
     "https://api.github.com/repos/"
@@ -40,10 +40,21 @@ def caminho_version():
 
     # Windows e outros executáveis PyInstaller
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent / "version.json"
+        pasta_exe = Path(sys.executable).resolve().parent
+        caminhos = [
+            pasta_exe / "version.json",
+            pasta_exe / "_internal" / "version.json",
+    ]
 
-    # Ambiente de desenvolvimento
-    return Path(__file__).resolve().parents[2] / "version.json"
+    for caminho in caminhos:
+        if caminho.is_file():
+            return caminho
+
+    raise FileNotFoundError(
+        "version.json não encontrado na instalação."
+    )
+    
+    
 
 
 def obter_versao_atual():
@@ -53,9 +64,16 @@ def obter_versao_atual():
         with open(caminho, "r", encoding="utf-8") as arquivo:
             dados = json.load(arquivo)
 
-        return dados["version"]
+        versao = dados.get("version")
 
-    except (FileNotFoundError, KeyError, json.JSONDecodeError) as erro:
+        if not isinstance(versao, str) or not versao.strip():
+            raise ValueError("Versão inválida no version.json.")
+
+        return versao
+
+    except (FileNotFoundError, KeyError, json.JSONDecodeError,
+            ValueError, OSError) as erro:
+
         print(f"Erro ao obter versão: {erro}")
         return None
 

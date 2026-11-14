@@ -9,9 +9,14 @@ from src.views.janela_atualizacao import perguntar_atualizacao
 from src.core.updater_service import baixar_atualizacao
 from src.core.installer import preparar_atualizacao
 
+from updater import aplicar_atualizacao
+
+
 
 
 def verificar_atualizacoes(janela):
+
+
     resultado = check_atualizacao()
 
     if resultado is None:
@@ -29,33 +34,75 @@ def verificar_atualizacoes(janela):
     if not aceitou:
         return
 
-    # Baixar atualização
+    # ==========================================
+    # 1. BAIXAR ATUALIZAÇÃO
+    # ==========================================
+
     arquivo = baixar_atualizacao(resultado["release"])
 
     if not arquivo:
         messagebox.showerror(
             "Erro na atualização",
             "Não foi possível baixar a atualização.\n\n"
-            "O PDV continuará funcionando normalmente."
+            "O PDV continuará funcionando normalmente.",
+            parent=janela
         )
         return
 
-    # Preparar atualização
+    # ==========================================
+    # 2. PREPARAR ATUALIZAÇÃO
+    # ==========================================
+
     preparado = preparar_atualizacao(arquivo)
 
     if not preparado:
         messagebox.showerror(
             "Erro na atualização",
             "Não foi possível preparar os arquivos.\n\n"
-            "Sua versão atual foi preservada."
+            "Sua versão atual foi preservada.",
+            parent=janela
         )
         return
 
-    messagebox.showinfo(
-        "Atualização preparada",
-        "O download foi concluído com sucesso!\n\n"
-        "A atualização está preparada para instalação."
+    # ==========================================
+    # 3. CONFIRMAR INSTALAÇÃO
+    # ==========================================
+
+    instalar = messagebox.askyesno(
+        "Instalar atualização",
+        "O download foi concluído e os arquivos foram preparados.\n\n"
+        "Deseja fechar o PDV e instalar a nova versão agora?",
+        parent=janela
     )
+
+    if not instalar:
+        messagebox.showinfo(
+            "Atualização preparada",
+            "A atualização foi baixada e preparada.\n"
+            "Ela poderá ser instalada posteriormente.",
+            parent=janela
+        )
+        return
+
+    # ==========================================
+    # 4. APLICAR ATUALIZAÇÃO
+    # ==========================================
+
+    sucesso = aplicar_atualizacao(preparado)
+
+    if sucesso:
+        # O aplicador precisa continuar trabalhando
+        # independentemente da janela do PDV.
+        janela.destroy()
+        return
+
+    messagebox.showerror(
+        "Erro na atualização",
+        "Não foi possível iniciar a instalação.\n\n"
+        "O PDV continuará utilizando a versão atual.",
+        parent=janela
+    )
+
 
 
 

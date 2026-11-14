@@ -26,10 +26,20 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+          cache: "pip"
 
       - name: Atualizar versão pelo número da Release
+        shell: pwsh
         run: |
-          python -c "import json, os; p='version.json'; d=json.load(open(p, encoding='utf-8')); d['version']=os.environ['GITHUB_REF_NAME'].removeprefix('v'); open(p,'w',encoding='utf-8').write(json.dumps(d,indent=4,ensure_ascii=False)+'\n')"
+          $versao = $env:GITHUB_REF_NAME -replace '^v', ''
+
+          $dados = Get-Content version.json -Raw | ConvertFrom-Json
+          $dados.version = $versao
+
+          $dados | ConvertTo-Json -Depth 10 |
+            Set-Content version.json -Encoding utf8
+
+          Write-Host "Versão da compilação: $versao"
 
       - name: Instalar dependências
         run: |
@@ -39,23 +49,70 @@ jobs:
 
       - name: Compilar Windows
         run: |
-          pyinstaller --noconfirm --clean --windowed --onedir --name PDV-Mercadinho main.py
+          pyinstaller --noconfirm --clean PDV-Mercadinho.spec
 
-      # IMPORTANTE:
-      # O version.json precisa ficar ao lado do EXE.
       - name: Copiar arquivo de versão
+        shell: pwsh
         run: |
-          Copy-Item version.json dist/PDV-Mercadinho/version.json
+          Copy-Item version.json dist/PDV-Mercadinho/version.json -Force
 
-      - name: Compactar
+      - name: Validar compilação Windows
+        shell: pwsh
         run: |
-          Compress-Archive -Path dist/PDV-Mercadinho -DestinationPath PDV-Mercadinho-Windows.zip
+          $pasta = "dist/PDV-Mercadinho"
 
-      - name: Salvar executável
+          $exe = "$pasta/PDV-Mercadinho.exe"
+          $versao = "$pasta/version.json"
+          $interno = "$pasta/_internal"
+
+          if (!(Test-Path $exe)) {
+              throw "ERRO: Executável Windows não encontrado!"
+          }
+
+          if (!(Test-Path $versao)) {
+              throw "ERRO: version.json não encontrado!"
+          }
+
+          if (!(Test-Path $interno)) {
+              throw "ERRO: Pasta _internal não encontrada!"
+          }
+
+          $dados = Get-Content $versao -Raw | ConvertFrom-Json
+
+          Write-Host "Executável encontrado."
+          Write-Host "Versão: $($dados.version)"
+
+          Write-Host "Conteúdo da distribuição:"
+          Get-ChildItem $pasta
+
+      - name: Compactar Windows
+        run: |
+          Compress-Archive `
+            -Path dist/PDV-Mercadinho `
+            -DestinationPath PDV-Mercadinho-Windows.zip `
+            -CompressionLevel Optimal
+
+      - name: Validar ZIP Windows
+        shell: pwsh
+        run: |
+          $zip = "PDV-Mercadinho-Windows.zip"
+
+          if (!(Test-Path $zip)) {
+              throw "ZIP Windows não foi gerado!"
+          }
+
+          if ((Get-Item $zip).Length -eq 0) {
+              throw "ZIP Windows está vazio!"
+          }
+
+          Write-Host "ZIP Windows gerado com sucesso."
+
+      - name: Salvar pacote Windows
         uses: actions/upload-artifact@v4
         with:
           name: windows-release
           path: PDV-Mercadinho-Windows.zip
+          if-no-files-found: error
 
 
   # ==========================================
@@ -73,6 +130,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+          cache: "pip"
 
       - name: Atualizar versão pelo número da Release
         run: |
@@ -82,13 +140,22 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-tk wget
+
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
 
       - name: Compilar Linux
         run: |
-          pyinstaller --noconfirm --clean --windowed --onedir --name PDV-Mercadinho main.py
+          pyinstaller --noconfirm --clean PDV-Mercadinho.spec
+
+      - name: Validar compilação Linux
+        run: |
+          test -f dist/PDV-Mercadinho/PDV-Mercadinho
+          test -f dist/PDV-Mercadinho/version.json
+          test -d dist/PDV-Mercadinho/_internal
+
+          echo "Compilação Linux validada."
 
       - name: Preparar AppImage
         run: |
@@ -98,8 +165,6 @@ jobs:
 
           cp assets/pdv-mercadinho.png AppDir/pdv-mercadinho.png
           cp assets/pdv-mercadinho.png AppDir/.DirIcon
-
-          cp version.json AppDir/usr/bin/PDV-Mercadinho/version.json
 
           cat > AppDir/AppRun <<'EOF'
           #!/bin/sh
@@ -127,13 +192,22 @@ jobs:
 
       - name: Gerar AppImage
         run: |
-          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool-x86_64.AppImage AppDir dist/PDV-Mercadinho-Linux.AppImage
+          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 \
+          ./appimagetool-x86_64.AppImage \
+          AppDir dist/PDV-Mercadinho-Linux.AppImage
 
-      - name: Salvar AppImage
+      - name: Validar AppImage
+        run: |
+          test -s dist/PDV-Mercadinho-Linux.AppImage
+
+          echo "AppImage gerado com sucesso."
+
+      - name: Salvar pacote Linux
         uses: actions/upload-artifact@v4
         with:
           name: linux-release
           path: dist/PDV-Mercadinho-Linux.AppImage
+          if-no-files-found: error
 
 
   # ==========================================
@@ -159,6 +233,14 @@ jobs:
         with:
           name: linux-release
           path: release-assets
+
+      - name: Conferir arquivos da Release
+        run: |
+          test -s release-assets/PDV-Mercadinho-Windows.zip
+          test -s release-assets/PDV-Mercadinho-Linux.AppImage
+
+          echo "Arquivos preparados para publicação:"
+          ls -lh release-assets/
 
       - name: Publicar Release no GitHub
         uses: softprops/action-gh-release@v2

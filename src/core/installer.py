@@ -2,9 +2,21 @@
 import platform
 import shutil
 import zipfile
+import os
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
+def remover_pasta_com_permissao(caminho):
+    def corrigir_permissao(func, path, exc_info):
+        import stat
+
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
+    shutil.rmtree(
+        caminho,
+        onerror=corrigir_permissao
+    )
 
 def preparar_atualizacao(arquivo_baixado):
     """
@@ -14,30 +26,44 @@ def preparar_atualizacao(arquivo_baixado):
 
     arquivo_baixado = Path(arquivo_baixado)
 
-    if not arquivo_baixado.exists():
+    if not arquivo_baixado.is_file():
         print("Arquivo de atualização não encontrado.")
         return None
 
-    pasta_temp = Path.home() / ".pdv-update-staging"
+
+    import tempfile
+
+    pasta_temp = (
+        Path(tempfile.gettempdir())
+        / "PDV-Mercadinho-Staging"
+    )
+
     pasta_temp.mkdir(parents=True, exist_ok=True)
+    
+
+    
 
     sistema = platform.system()
 
     try:
+
+        # ==========================================
+        # WINDOWS
+        # ==========================================
 
         if sistema == "Windows":
 
             if arquivo_baixado.suffix.lower() != ".zip":
                 raise ValueError("Arquivo Windows inválido.")
 
-            destino = pasta_temp / "windows"
+            destino = pasta_temp / "windows-update"
 
             if destino.exists():
-                shutil.rmtree(destino)
-
+                 remover_pasta_com_permissao(destino)
+           
             destino.mkdir(parents=True)
 
-            # Verificar integridade do ZIP
+            # Verificar integridade e caminhos do ZIP
             with zipfile.ZipFile(arquivo_baixado, "r") as pacote:
 
                 erro = pacote.testzip()
@@ -47,29 +73,56 @@ def preparar_atualizacao(arquivo_baixado):
                         f"Arquivo ZIP corrompido: {erro}"
                     )
 
-                # Evitar extração de caminhos maliciosos
                 raiz = destino.resolve()
 
                 for membro in pacote.infolist():
-                    caminho = (destino / membro.filename).resolve()
+
+                    nome = membro.filename.replace("\\", "/")
+                    caminho_relativo = PurePosixPath(nome)
+
+                    if caminho_relativo.is_absolute() or ".." in caminho_relativo.parts:
+                        raise ValueError(
+                            f"Caminho inválido no ZIP: {nome}"
+                        )
+
+                    caminho = (destino / nome).resolve()
 
                     if not caminho.is_relative_to(raiz):
                         raise ValueError(
-                            "O ZIP contém um caminho inválido."
+                            f"Caminho fora da pasta de destino: {nome}"
                         )
 
                 pacote.extractall(destino)
 
-            executavel = destino / "PDV-Mercadinho" / "PDV-Mercadinho.exe"
+            # Localizar o executável em qualquer subpasta
+            executaveis = list(
+                destino.rglob("PDV-Mercadinho.exe")
+            )
 
-            if not executavel.is_file():
+            if not executaveis:
                 raise FileNotFoundError(
                     "Executável Windows não encontrado no pacote."
                 )
 
-            print("Atualização Windows preparada.")
+            executavel = executaveis[0]
 
-            return destino
+            # Verificar se o version.json foi incluído
+            versao = executavel.parent / "version.json"
+
+            if not versao.is_file():
+                raise FileNotFoundError(
+                    "version.json não encontrado junto ao executável."
+                )
+
+            print("Atualização Windows preparada.")
+            print(f"Executável: {executavel}")
+            print(f"Versão: {versao}")
+
+            return executavel.parent
+
+        # ==========================================
+        # LINUX
+        # ==========================================
 
         elif sistema == "Linux":
 
@@ -80,7 +133,6 @@ def preparar_atualizacao(arquivo_baixado):
 
             shutil.copy2(arquivo_baixado, destino)
 
-            # Permitir execução do AppImage
             destino.chmod(0o755)
 
             if destino.stat().st_size == 0:
@@ -91,9 +143,17 @@ def preparar_atualizacao(arquivo_baixado):
             return destino
 
         else:
-            print("Sistema operacional não suportado.")
-            return None
+            raise OSError(
+                f"Sistema operacional não suportado: {sistema}"
+            )
 
-    except (OSError, zipfile.BadZipFile, ValueError) as erro:
+    except (
+        OSError,
+        zipfile.BadZipFile,
+        ValueError,
+        shutil.Error
+    ) as erro:
+
         print(f"Erro ao preparar atualização: {erro}")
+
         return None
