@@ -51,6 +51,7 @@ jobs:
         run: |
           pyinstaller --noconfirm --clean PDV-Mercadinho.spec
 
+      
       - name: Validar compilação Windows
         shell: pwsh
         run: |
@@ -71,23 +72,25 @@ jobs:
 
           Write-Host "Executável encontrado."
 
-          Write-Host "===== VALIDANDO VERSION.JSON ====="
-
-          if (!(Test-Path "$diretorio/version.json" -PathType Leaf)) {
-              throw "version.json não encontrado!"
-          }
-
-          Write-Host "version.json encontrado."
-
           Write-Host "===== VALIDANDO DEPENDÊNCIAS ====="
 
           if (!(Test-Path "$diretorio/_internal" -PathType Container)) {
               throw "Pasta _internal não encontrada!"
           }
 
-          Write-Host "Dependências encontradas."
+          Write-Host "Pasta _internal encontrada."
+
+          Write-Host "===== VALIDANDO VERSION.JSON ====="
+
+          if (!(Test-Path "$diretorio/_internal/version.json" -PathType Leaf)) {
+              Get-ChildItem $diretorio -Recurse
+              throw "version.json não encontrado em _internal!"
+          }
+
+          Write-Host "version.json encontrado."
 
           Write-Host "Compilação Windows validada com sucesso!"
+
 
       - name: Inspecionar arquivos Windows
         shell: pwsh
@@ -169,6 +172,7 @@ jobs:
           echo "===== PERMISSÕES DO EXECUTÁVEL ====="
           ls -lah dist/PDV-Mercadinho/ || true
 
+      
       - name: Validar compilação Linux
         shell: bash
         run: |
@@ -177,16 +181,16 @@ jobs:
           echo "===== VALIDANDO ESTRUTURA LINUX ====="
 
           if [ ! -d "$DIRETORIO" ]; then
-            echo "ERRO: Diretório de distribuição não encontrado!"
             find dist -maxdepth 5 -print || true
+            echo "ERRO: Diretório de distribuição não encontrado!"
             exit 1
           fi
 
           echo "===== VALIDANDO EXECUTÁVEL ====="
 
           if [ ! -f "$DIRETORIO/PDV-Mercadinho" ]; then
-            echo "ERRO: Executável Linux não encontrado!"
             ls -lah "$DIRETORIO"
+            echo "ERRO: Executável Linux não encontrado!"
             exit 1
           fi
 
@@ -197,25 +201,27 @@ jobs:
 
           echo "Executável encontrado."
 
+          echo "===== VALIDANDO DEPENDÊNCIAS ====="
+
+          if [ ! -d "$DIRETORIO/_internal" ]; then
+            echo "ERRO: Pasta _internal não encontrada!"
+            exit 1
+          fi
+
+          echo "Pasta _internal encontrada."
+
           echo "===== VALIDANDO VERSION.JSON ====="
 
-          if [ ! -f "$DIRETORIO/version.json" ]; then
-            echo "ERRO: version.json não encontrado!"
+          if [ ! -f "$DIRETORIO/_internal/version.json" ]; then
+            find "$DIRETORIO" -maxdepth 4 -print
+            echo "ERRO: version.json não encontrado em _internal!"
             exit 1
           fi
 
           echo "version.json encontrado."
 
-          echo "===== VALIDANDO DEPENDÊNCIAS ====="
-
-          if [ ! -d "$DIRETORIO/_internal" ]; then
-            echo "ERRO: Pasta _internal não encontrada!"
-            ls -lah "$DIRETORIO"
-            exit 1
-          fi
-
-          echo "Dependências encontradas."
           echo "Compilação Linux validada com sucesso!"
+
 
       - name: Preparar AppImage
         run: |
