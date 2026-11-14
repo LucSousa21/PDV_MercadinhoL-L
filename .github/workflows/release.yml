@@ -51,6 +51,11 @@ jobs:
         run: |
           pyinstaller --noconfirm --clean PDV-Mercadinho.spec
 
+      
+      - name: Copiar arquivo de versão Linux
+        run: |
+          cp version.json dist/PDV-Mercadinho/version.json
+          
       - name: Copiar arquivo de versão
         shell: pwsh
         run: |
