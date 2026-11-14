@@ -51,46 +51,58 @@ jobs:
         run: |
           pyinstaller --noconfirm --clean PDV-Mercadinho.spec
 
-      
-      - name: Copiar arquivo de versão Linux
-        run: |
-          cp version.json dist/PDV-Mercadinho/version.json
-          
-      - name: Copiar arquivo de versão
+      - name: Validar compilação Windows
         shell: pwsh
         run: |
-          Copy-Item version.json dist/PDV-Mercadinho/version.json -Force
+          $diretorio = "dist/PDV-Mercadinho"
 
-      - name: Validar compilação Linux
+          Write-Host "===== VALIDANDO ESTRUTURA WINDOWS ====="
+
+          if (!(Test-Path $diretorio -PathType Container)) {
+              throw "Diretório de distribuição não encontrado!"
+          }
+
+          Write-Host "===== VALIDANDO EXECUTÁVEL ====="
+
+          if (!(Test-Path "$diretorio/PDV-Mercadinho.exe" -PathType Leaf)) {
+              Get-ChildItem $diretorio -Recurse
+              throw "Executável Windows não encontrado!"
+          }
+
+          Write-Host "Executável encontrado."
+
+          Write-Host "===== VALIDANDO VERSION.JSON ====="
+
+          if (!(Test-Path "$diretorio/version.json" -PathType Leaf)) {
+              throw "version.json não encontrado!"
+          }
+
+          Write-Host "version.json encontrado."
+
+          Write-Host "===== VALIDANDO DEPENDÊNCIAS ====="
+
+          if (!(Test-Path "$diretorio/_internal" -PathType Container)) {
+              throw "Pasta _internal não encontrada!"
+          }
+
+          Write-Host "Dependências encontradas."
+
+          Write-Host "Compilação Windows validada com sucesso!"
+
+      - name: Inspecionar arquivos Windows
+        shell: pwsh
         run: |
-          echo "================================"
-          echo "ESTRUTURA GERADA PELO PYINSTALLER"
-          echo "================================"
-
-          if [ -d dist ]; then
-              find dist -maxdepth 4 -type f -print
-              find dist -maxdepth 4 -type d -print
-          else
-              echo "ERRO: Pasta dist não foi criada!"
-              exit 1
-          fi
-
-          echo "================================"
-          echo "VALIDANDO EXECUTÁVEL"
-          echo "================================"
-
-          test -f dist/PDV-Mercadinho/PDV-Mercadinho
-          test -f dist/PDV-Mercadinho/version.json
-          test -d dist/PDV-Mercadinho/_internal
-
-          echo "Compilação Linux validada."
+          Write-Host "===== ESTRUTURA GERADA ====="
+          Get-ChildItem dist -Recurse
 
       - name: Compactar Windows
+        shell: pwsh
         run: |
           Compress-Archive `
-            -Path dist/PDV-Mercadinho `
-            -DestinationPath PDV-Mercadinho-Windows.zip `
-            -CompressionLevel Optimal
+            -Path "dist/PDV-Mercadinho" `
+            -DestinationPath "PDV-Mercadinho-Windows.zip" `
+            -CompressionLevel Optimal `
+            -Force
 
       - name: Validar ZIP Windows
         shell: pwsh
@@ -148,21 +160,62 @@ jobs:
       - name: Compilar Linux
         run: |
           pyinstaller --noconfirm --clean PDV-Mercadinho.spec
-      
+
       - name: Inspecionar arquivos Linux
         run: |
-          echo "===== ARQUIVOS GERADOS ====="
-          find dist -maxdepth 4 -print
+          echo "===== ESTRUTURA GERADA PELO PYINSTALLER ====="
+          find dist -maxdepth 5 -print
 
           echo "===== PERMISSÕES DO EXECUTÁVEL ====="
           ls -lah dist/PDV-Mercadinho/ || true
-      - name: Validar compilação Linux
-        run: |
-          test -f dist/PDV-Mercadinho/PDV-Mercadinho
-          test -f dist/PDV-Mercadinho/version.json
-          test -d dist/PDV-Mercadinho/_internal
 
-          echo "Compilação Linux validada."
+      - name: Validar compilação Linux
+        shell: bash
+        run: |
+          DIRETORIO="dist/PDV-Mercadinho"
+
+          echo "===== VALIDANDO ESTRUTURA LINUX ====="
+
+          if [ ! -d "$DIRETORIO" ]; then
+            echo "ERRO: Diretório de distribuição não encontrado!"
+            find dist -maxdepth 5 -print || true
+            exit 1
+          fi
+
+          echo "===== VALIDANDO EXECUTÁVEL ====="
+
+          if [ ! -f "$DIRETORIO/PDV-Mercadinho" ]; then
+            echo "ERRO: Executável Linux não encontrado!"
+            ls -lah "$DIRETORIO"
+            exit 1
+          fi
+
+          if [ ! -x "$DIRETORIO/PDV-Mercadinho" ]; then
+            echo "ERRO: Executável sem permissão de execução!"
+            exit 1
+          fi
+
+          echo "Executável encontrado."
+
+          echo "===== VALIDANDO VERSION.JSON ====="
+
+          if [ ! -f "$DIRETORIO/version.json" ]; then
+            echo "ERRO: version.json não encontrado!"
+            exit 1
+          fi
+
+          echo "version.json encontrado."
+
+          echo "===== VALIDANDO DEPENDÊNCIAS ====="
+
+          if [ ! -d "$DIRETORIO/_internal" ]; then
+            echo "ERRO: Pasta _internal não encontrada!"
+            ls -lah "$DIRETORIO"
+            exit 1
+          fi
+
+          echo "Dependências encontradas."
+          echo "Compilação Linux validada com sucesso!"
 
       - name: Preparar AppImage
         run: |
@@ -205,7 +258,10 @@ jobs:
 
       - name: Validar AppImage
         run: |
-          test -s dist/PDV-Mercadinho-Linux.AppImage
+          if [ ! -s dist/PDV-Mercadinho-Linux.AppImage ]; then
+            echo "ERRO: AppImage não foi gerado!"
+            exit 1
+          fi
 
           echo "AppImage gerado com sucesso."
 
@@ -252,6 +308,7 @@ jobs:
       - name: Publicar Release no GitHub
         uses: softprops/action-gh-release@v2
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             release-assets/PDV-Mercadinho-Windows.zip
             release-assets/PDV-Mercadinho-Linux.AppImage
