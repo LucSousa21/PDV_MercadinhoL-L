@@ -11,6 +11,7 @@ from src.views.venda import VendaView
 from src.core.updater_service import check_atualizacao
 from src.views.janela_atualizacao import perguntar_atualizacao
 from src.core.impressora_service import ImpressaoService
+from src.views.cadastro_produto import abrir_cadastro
 
 
 class PDV(ctk.CTkFrame):
@@ -30,7 +31,7 @@ class PDV(ctk.CTkFrame):
         self._criar_interface()
         self._configurar_teclas()
 
-        self.entry_codigo.focus_set()
+        self.after(300, self.entry_codigo.focus_set)
 
     # ==========================================================
     # INTERFACE
@@ -193,7 +194,7 @@ class PDV(ctk.CTkFrame):
         atalhos = ctk.CTkLabel(
             frame,
             text=(
-                "F2 Buscar  |  F4 Quantidade  |  "
+                "F2 Buscar | F3 Cadastrar |  F4 Quantidade  |  "
                 "F6 Remover  |  F8 Cancelar  |  F10 Pagar"
             ),
             font=ctk.CTkFont(size=13),
@@ -235,7 +236,10 @@ class PDV(ctk.CTkFrame):
             "<F2>",
             self._f2_buscar,
         )
-
+        janela.bind(
+            "<F3>",
+            self._f3_cadastrar_produto,
+        )
         janela.bind(
             "<F4>",
             self._f4_quantidade,
@@ -272,6 +276,14 @@ class PDV(ctk.CTkFrame):
         self.label_status.configure(
             text="Digite o código de barras ou nome do produto"
         )
+
+    def _f3_cadastrar_produto(self, event=None):
+
+        janela = abrir_cadastro(self.winfo_toplevel())
+
+        self.winfo_toplevel().wait_window(janela)
+
+        self.entry_codigo.focus_set()
 
     # ==========================================================
     # PRODUTOS
@@ -589,6 +601,8 @@ class PDV(ctk.CTkFrame):
             )
 
             return
+        
+        
 
     # ======================================================
     # PREPARAR CUPOM
@@ -882,7 +896,7 @@ class PDV(ctk.CTkFrame):
 
         botao = ctk.CTkButton(
             janela,
-            text="OK",
+            text="OK [ENTER]",
             height=55,
             width=240,
             font=ctk.CTkFont(
@@ -892,8 +906,11 @@ class PDV(ctk.CTkFrame):
             command=janela.destroy,
         )
 
-        botao.pack(
-            pady=10,
+        botao.pack(pady=10)
+
+        janela.bind(
+            "<Return>",
+            lambda event: janela.destroy()
         )
 
         janela.lift()

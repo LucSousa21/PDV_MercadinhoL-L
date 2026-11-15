@@ -107,12 +107,21 @@ def preparar_atualizacao(arquivo_baixado):
             executavel = executaveis[0]
 
             # Verificar se o version.json foi incluído
-            versao = executavel.parent / "version.json"
+            versoes = [
+                executavel.parent / "version.json",
+                executavel.parent / "_internal" / "version.json"
+                ]
 
-            if not versao.is_file():
-                raise FileNotFoundError(
-                    "version.json não encontrado junto ao executável."
+            versao = next(
+                (caminho for caminho in versoes if caminho.is_file()),
+                None
                 )
+
+            if versao is None:
+                raise FileNotFoundError(
+                    "version.json não encontrado na distribuição."
+                    )
+
 
             print("Atualização Windows preparada.")
             print(f"Executável: {executavel}")

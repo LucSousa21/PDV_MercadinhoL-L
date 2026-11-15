@@ -41,10 +41,14 @@ def caminho_version():
     # Windows e outros executáveis PyInstaller
     if getattr(sys, "frozen", False):
         pasta_exe = Path(sys.executable).resolve().parent
-        caminhos = [
-            pasta_exe / "version.json",
-            pasta_exe / "_internal" / "version.json",
-    ]
+
+    else:
+        pasta_exe = Path(__file__).resolve().parents[2]
+
+    caminhos = [
+                pasta_exe / "version.json",
+                pasta_exe / "_internal" / "version.json",
+                ]
 
     for caminho in caminhos:
         if caminho.is_file():

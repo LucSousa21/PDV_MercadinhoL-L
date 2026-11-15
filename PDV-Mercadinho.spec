@@ -40,6 +40,11 @@ datas += sql_datas
 binaries += sql_binaries
 hiddenimports += sql_hidden
 
+hiddenimports += [
+    "sqlite3",
+    "sqlalchemy.dialects.sqlite",
+]
+
 # ==========================================
 # ASSETS
 # ==========================================

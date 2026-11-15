@@ -14,7 +14,7 @@ from updater import aplicar_atualizacao
 
 
 
-def verificar_atualizacoes(janela):
+""" def verificar_atualizacoes(janela):
 
 
     resultado = check_atualizacao()
@@ -101,7 +101,7 @@ def verificar_atualizacoes(janela):
         "Não foi possível iniciar a instalação.\n\n"
         "O PDV continuará utilizando a versão atual.",
         parent=janela
-    )
+    ) """
 
 
 
@@ -113,15 +113,15 @@ def iniciar_pdv():
 
     janela = ctk.CTk()
     janela.title("PDV Mercadinho")
-    janela.geometry("1000x700")
-    janela.minsize(800, 600)
+    # Abre em tela cheia
+    janela.attributes("-fullscreen", True)
 
     pdv = PDV(janela)
     pdv.pack(fill="both", expand=True)
 
-    janela.after(
+    """ janela.after(
         2000,
         lambda: verificar_atualizacoes(janela)
-    )
+    ) """
 
     janela.mainloop()
