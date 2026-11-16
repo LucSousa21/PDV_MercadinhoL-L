@@ -12,6 +12,7 @@ from src.core.updater_service import check_atualizacao
 from src.views.janela_atualizacao import perguntar_atualizacao
 from src.core.impressora_service import ImpressaoService
 from src.views.cadastro_produto import abrir_cadastro
+from src.views.estoque_baixo import JanelaEstoqueBaixo
 
 
 class PDV(ctk.CTkFrame):
@@ -32,6 +33,9 @@ class PDV(ctk.CTkFrame):
         self._configurar_teclas()
 
         self.after(300, self.entry_codigo.focus_set)
+        self._criar_interface()
+        self._configurar_teclas()
+        self.after(500, self._abrir_alerta_estoque)
 
     # ==========================================================
     # INTERFACE
@@ -195,9 +199,9 @@ class PDV(ctk.CTkFrame):
             frame,
             text=(
                 "F2 Buscar | F3 Cadastrar |  F4 Quantidade  |  "
-                "F6 Remover  |  F8 Cancelar  |  F10 Pagar"
+                "F6 Remover  |  F8 Cancelar  |  F10 Pagar | F12 Sair"
             ),
-            font=ctk.CTkFont(size=13),
+            font=ctk.CTkFont(size=20),
         )
 
         atalhos.grid(
@@ -212,7 +216,7 @@ class PDV(ctk.CTkFrame):
             frame,
             text="TOTAL: R$ 0,00",
             font=ctk.CTkFont(
-                size=24,
+                size=35,
                 weight="bold",
             ),
         )
@@ -258,6 +262,11 @@ class PDV(ctk.CTkFrame):
         janela.bind(
             "<F10>",
             self._f10_pagamento,
+        )
+
+        janela.bind(
+            "<F12>",
+            self._f12_encerrar
         )
 
         janela.bind(
@@ -521,7 +530,7 @@ class PDV(ctk.CTkFrame):
             return
 
         confirmar = ctk.CTkInputDialog(
-            text="Digite SIM para cancelar a venda:",
+            text="Digite o código de cancelamento:",
             title="Cancelar venda",
         )
 
@@ -530,7 +539,7 @@ class PDV(ctk.CTkFrame):
         if resposta is None:
             return
 
-        if resposta.strip().upper() != "SIM":
+        if resposta.strip().upper() != "278":
             return
 
         self.limpar_venda()
@@ -559,6 +568,19 @@ class PDV(ctk.CTkFrame):
             ao_confirmar=self._pagamento_confirmado,
         )
 
+    def _f12_encerrar(self, event=None):
+        confirmar = ctk.CTkInputDialog(
+            text="Digite o código de encerramento:",
+            title="Encerrar sistema",
+        )
+
+        resposta = confirmar.get_input()
+
+        if resposta is None:
+            return
+
+        if resposta.strip().upper() == "278":
+            self.winfo_toplevel().destroy()
     # ==========================================================
     # PAGAMENTO CONFIRMADO
     # ==========================================================
@@ -655,6 +677,14 @@ class PDV(ctk.CTkFrame):
                 f"Troco: R$ {troco:.2f}"
             ).replace(".", ",")
         )
+
+    def _abrir_alerta_estoque(self):
+
+        JanelaEstoqueBaixo(
+            master=self.winfo_toplevel()
+        )
+
+        self.entry_codigo.focus_set()
 
 
     def _mostrar_resumo_pagamento(

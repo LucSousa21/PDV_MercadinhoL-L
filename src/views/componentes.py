@@ -23,7 +23,7 @@ class LinhaProduto(ctk.CTkFrame):
         self.label_produto = ctk.CTkLabel(
             self,
             text=f"{numero}. {nome}",
-            font=ctk.CTkFont(size=15),
+            font=ctk.CTkFont(size=25),
             anchor="w",
         )
         self.label_produto.grid(
@@ -37,7 +37,7 @@ class LinhaProduto(ctk.CTkFrame):
         self.label_quantidade = ctk.CTkLabel(
             self,
             text=f"Qtd: {quantidade}",
-            font=ctk.CTkFont(size=15),
+            font=ctk.CTkFont(size=25),
         )
         self.label_quantidade.grid(
             row=0,
@@ -49,7 +49,7 @@ class LinhaProduto(ctk.CTkFrame):
         self.label_preco = ctk.CTkLabel(
             self,
             text=f"R$ {preco:.2f}",
-            font=ctk.CTkFont(size=15),
+            font=ctk.CTkFont(size=25),
         )
         self.label_preco.grid(
             row=0,
@@ -62,7 +62,7 @@ class LinhaProduto(ctk.CTkFrame):
             self,
             text=f"R$ {subtotal:.2f}",
             font=ctk.CTkFont(
-                size=15,
+                size=25,
                 weight="bold",
             ),
         )
