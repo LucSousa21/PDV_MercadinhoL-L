@@ -6,11 +6,16 @@ from decimal import Decimal, InvalidOperation
 from src.schemas.produtos import ProdutoCreate
 from src.service.cadastro_produto import cadastrar_produto
 
+from src.service.consultar_produto import buscar_produto_por_codigo
+from src.service.atualizar_produto import atualizar_produto
 
 class CadastroProduto(ctk.CTkToplevel):
 
     def __init__(self, parent):
         super().__init__(parent)
+
+        self.produto_id = None
+        self.modo_edicao = False
 
         self.title("Cadastro de Produto")
         self.geometry("550x620")
@@ -139,7 +144,7 @@ class CadastroProduto(ctk.CTkToplevel):
 
         self.codigo_entry.bind(
             "<Return>",
-            lambda event: self.nome_entry.focus_set()
+            self.buscar_codigo
         )
 
         self.nome_entry.bind(
@@ -162,6 +167,56 @@ class CadastroProduto(ctk.CTkToplevel):
             lambda event: self.salvar()
         )
 
+    def buscar_codigo(self, event=None):
+
+        codigo = self.codigo_entry.get().strip()
+
+        if not codigo:
+            return
+
+        produto = buscar_produto_por_codigo(codigo)
+
+        if produto is None:
+
+            self.produto_id = None
+            self.modo_edicao = False
+
+            self.nome_entry.delete(0, "end")
+            self.preco_entry.delete(0, "end")
+            self.estoque_entry.delete(0, "end")
+
+            self.ativo_var.set(True)
+
+            self.salvar_btn.configure(
+                text="SALVAR PRODUTO [ENTER]",
+                command=self.salvar,
+            )
+
+            self.nome_entry.focus_set()
+
+            return
+
+        # Produto encontrado
+        self.produto_id = produto.id
+        self.modo_edicao = True
+
+        self.nome_entry.delete(0, "end")
+        self.nome_entry.insert(0, produto.nome)
+
+        self.preco_entry.delete(0, "end")
+        self.preco_entry.insert(0, str(produto.preco))
+
+        self.estoque_entry.delete(0, "end")
+        self.estoque_entry.insert(0, str(produto.estoque))
+
+        self.ativo_var.set(produto.ativo)
+
+        self.salvar_btn.configure(
+            text="ATUALIZAR PRODUTO [ENTER]",
+            command=self.salvar,
+        )
+
+        self.nome_entry.focus_set()
     # =====================================
     # VALIDAÇÃO E CADASTRO
     # =====================================
@@ -238,13 +293,32 @@ class CadastroProduto(ctk.CTkToplevel):
                 ativo=self.ativo_var.get()
             )
 
-            cadastrar_produto(produto)
+            
+            if self.modo_edicao and self.produto_id is not None:
 
-            messagebox.showinfo(
-                "Cadastro realizado",
-                f"Produto '{nome}' cadastrado com sucesso!",
-                parent=self
-            )
+                atualizar_produto(
+                    produto_id=self.produto_id,
+                    dados=produto,
+                )
+
+                messagebox.showinfo(
+                    "Atualização realizada",
+                    f"Produto '{nome}' atualizado com sucesso!",
+                    parent=self
+                )
+
+            else:
+
+                cadastrar_produto(produto)
+
+                messagebox.showinfo(
+                    "Cadastro realizado",
+                    f"Produto '{nome}' cadastrado com sucesso!",
+                    parent=self
+                )
+
+            self.limpar_campos()
+
 
             self.limpar_campos()
 
@@ -271,6 +345,14 @@ class CadastroProduto(ctk.CTkToplevel):
 
         # Volta para o leitor
         self.codigo_entry.focus_set()
+
+        self.produto_id = None
+        self.modo_edicao = False
+
+        self.salvar_btn.configure(
+            text="SALVAR PRODUTO [ENTER]",
+            command=self.salvar,
+        )
 
 
 def abrir_cadastro(parent):

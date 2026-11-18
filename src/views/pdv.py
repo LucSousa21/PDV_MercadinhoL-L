@@ -23,9 +23,11 @@ class PDV(ctk.CTkFrame):
     def __init__(self, master):
             
         super().__init__(master)
-
+      
         self.venda = VendaView()
         self.quantidade_pendente = 1
+
+        self.fiado = 0
 
         self.impressao_service = ImpressaoService()
 
@@ -212,6 +214,24 @@ class PDV(ctk.CTkFrame):
             sticky="w",
         )
 
+        self.label_fiado = ctk.CTkLabel(
+            frame,
+            text="",
+            font=ctk.CTkFont(
+                size=16,
+                weight="bold",
+            ),
+            text_color="#E6A23C",
+        )
+
+        self.label_fiado.grid(
+            row=1,
+            column=0,
+            padx=15,
+            pady=(0, 10),
+            sticky="w",
+        )
+
         self.label_total = ctk.CTkLabel(
             frame,
             text="TOTAL: R$ 0,00",
@@ -247,6 +267,10 @@ class PDV(ctk.CTkFrame):
         janela.bind(
             "<F4>",
             self._f4_quantidade,
+        )
+        janela.bind(
+            "<F5>",
+            self._fiado_f5,
         )
 
         janela.bind(
@@ -415,14 +439,28 @@ class PDV(ctk.CTkFrame):
     # ==========================================================
     # TOTAL
     # ==========================================================
-
     def _atualizar_total(self):
 
-        total = self.venda.total
+        if self.fiado == 1:
+
+            total = self.calcular_total_fiado()
+
+            self.label_fiado.configure(
+                text="VENDA A PRAZO - TAXA DE 5%"
+            )
+
+        else:
+
+            total = self.venda.total
+
+            self.label_fiado.configure(
+                text=""
+            )
 
         self.label_total.configure(
             text=f"TOTAL: R$ {total:.2f}".replace(".", ",")
         )
+
 
     # ==========================================================
     # QUANTIDADE
@@ -543,7 +581,6 @@ class PDV(ctk.CTkFrame):
             return
 
         self.limpar_venda()
-
         self.label_status.configure(
             text="Venda cancelada. Caixa pronto para nova venda."
         )
@@ -558,6 +595,17 @@ class PDV(ctk.CTkFrame):
 
             self.label_status.configure(
                 text="Adicione pelo menos um produto."
+            )
+
+            return
+
+        if self.fiado == 1:
+            self._pagamento_confirmado(
+                pagamentos=[{"forma": "Fiado",
+                             "valor": self.venda.total * Decimal("1.05"),
+                             }],
+                             valor_recebido=self.venda.total * Decimal("1.05"),
+                             troco=Decimal("0.00")
             )
 
             return
@@ -966,6 +1014,8 @@ class PDV(ctk.CTkFrame):
         # Limpa os itens
         self.venda.limpar()
 
+        self.fiado = 0
+
         # Reseta quantidade
         self.quantidade_pendente = 1
 
@@ -985,3 +1035,38 @@ class PDV(ctk.CTkFrame):
         self.label_total.configure(
             text="TOTAL: R$ 0,00"
         )
+
+    def _fiado_f5(self, event=None):
+        if self.venda.esta_vazia():
+            self.label_status.configure(
+                text="Adicione produtos antes de selecionar fiado."
+                )
+            return
+    
+        if self.fiado == 1:
+            return
+            
+
+        confirmar = ctk.CTkInputDialog(
+            text="Digite 1 para confirmar a venda a prazo:",
+            title="Venda a prazo",
+        )
+
+        resposta = confirmar.get_input()
+
+        if resposta == "1":
+
+            self.fiado = 1
+
+            self.label_status.configure(
+                text="VENDA A PRAZO CONFIRMADA!"
+            )
+
+            self._atualizar_total()
+
+    def calcular_total_fiado(self):
+        taxa = Decimal("0.05")
+
+        total = self.venda.total
+
+        return total + (total * taxa)

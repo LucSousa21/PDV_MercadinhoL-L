@@ -76,3 +76,22 @@ def exibir_produto(info_produto: str) -> ProdutoResponse | None:
             estoque=produto.estoque,
             ativo=produto.ativo
         )
+    
+
+def buscar_produto_por_codigo(codigo: str) -> ProdutoResponse | None:
+
+    if not codigo or not codigo.strip():
+        return None
+
+    with SessionLocal() as session:
+
+        stmt = select(Produto).where(
+            Produto.cd_barras == codigo.strip()
+        )
+
+        produto = session.scalars(stmt).first()
+
+        if produto is None:
+            return None
+
+        return ProdutoResponse.model_validate(produto)
