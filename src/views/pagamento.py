@@ -54,18 +54,36 @@ class JanelaPagamento(ctk.CTkToplevel):
 
         self.attributes("-topmost", True)
 
-        self.grab_set()
 
         self._criar_interface()
         self._configurar_teclado()
         self._mostrar_formas_pagamento()
 
-        self.lift()
-        self.focus_force()
-
+        self.after(200, self._ativar_janela)
     # ==========================================================
     # INTERFACE PRINCIPAL
     # ==========================================================
+
+    def _ativar_janela(self):
+
+        if not self.winfo_exists():
+            return
+
+        self.deiconify()
+        self.lift()
+        self.grab_set()
+        self.focus_force()
+        
+
+        self.after(100, self._focar_janela)
+
+
+    def _focar_janela(self):
+
+        if not self.winfo_exists():
+            return
+
+        self.focus_force()
 
     def _criar_interface(self):
         self.grid_columnconfigure(0, weight=1)
@@ -173,7 +191,7 @@ class JanelaPagamento(ctk.CTkToplevel):
             self.area,
             text="ESCOLHA A FORMA DE PAGAMENTO",
             font=ctk.CTkFont(
-                size=24,
+                size=25,
                 weight="bold",
             ),
         )
@@ -203,9 +221,9 @@ class JanelaPagamento(ctk.CTkToplevel):
             botao = ctk.CTkButton(
                 frame_formas,
                 text=f"{numero}\n{nome}",
-                height=90,
+                height=100,
                 font=ctk.CTkFont(
-                    size=17,
+                    size=30,
                     weight="bold",
                 ),
                 command=lambda n=numero: self._selecionar_forma(n),
@@ -221,9 +239,9 @@ class JanelaPagamento(ctk.CTkToplevel):
 
         instrucoes = ctk.CTkLabel(
             self.area,
-            text="Digite o número da opção ou clique no botão",
+            text="Pressione o número da opção ou clique no botão",
             font=ctk.CTkFont(
-                size=16,
+                size=25,
             ),
         )
 
@@ -267,7 +285,7 @@ class JanelaPagamento(ctk.CTkToplevel):
             self.area,
             text=self.forma_pagamento.upper(),
             font=ctk.CTkFont(
-                size=28,
+                size=35,
                 weight="bold",
             ),
         )
@@ -280,7 +298,7 @@ class JanelaPagamento(ctk.CTkToplevel):
             self.area,
             text="VALOR QUE FALTA PAGAR",
             font=ctk.CTkFont(
-                size=18,
+                size=35,
                 weight="bold",
             ),
         )
@@ -340,7 +358,7 @@ class JanelaPagamento(ctk.CTkToplevel):
             text="ADICIONAR PAGAMENTO [ENTER]",
             height=55,
             font=ctk.CTkFont(
-                size=17,
+                size=25,
                 weight="bold",
             ),
             command=self._adicionar_pagamento,

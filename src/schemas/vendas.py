@@ -34,6 +34,7 @@ from src.schemas.item_vendas import (
 class VendaCreate(BaseModel):
     cliente_id: int | None = None
     itens: list[ItemVendaCreate] = Field(min_length=1)
+    
 
 
 class VendaResponse(BaseModel):

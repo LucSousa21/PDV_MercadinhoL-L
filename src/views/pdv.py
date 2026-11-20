@@ -33,11 +33,8 @@ class PDV(ctk.CTkFrame):
 
         self._criar_interface()
         self._configurar_teclas()
-
-        self.after(300, self.entry_codigo.focus_set)
-        self._criar_interface()
-        self._configurar_teclas()
-        self.after(500, self._abrir_alerta_estoque)
+        self.after(2000, self.entry_codigo.focus_set)
+        self.after(5000, self._abrir_alerta_estoque)
 
     # ==========================================================
     # INTERFACE
@@ -203,7 +200,7 @@ class PDV(ctk.CTkFrame):
                 "F2 Buscar | F3 Cadastrar |  F4 Quantidade  |  "
                 "F6 Remover  |  F8 Cancelar  |  F10 Pagar | F12 Sair"
             ),
-            font=ctk.CTkFont(size=20),
+            font=ctk.CTkFont(size=22),
         )
 
         atalhos.grid(
@@ -248,6 +245,21 @@ class PDV(ctk.CTkFrame):
             pady=10,
         )
 
+        direitos = ctk.CTkLabel(
+            frame,
+            text="© 2026 Lucas Carvalho | Todos os direitos reservados.",
+            font=ctk.CTkFont(size=11, weight="normal"),
+            text_color="#A0A0A0"
+
+        )
+        direitos.grid(
+            row=1,
+            column=0,
+            columnspan=3,
+            padx=20,
+            pady=(0, 10),
+            sticky="ew"
+        )
     
     # ==========================================================
     # TECLADO
